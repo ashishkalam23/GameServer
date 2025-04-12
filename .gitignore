@@ -1,0 +1,55 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+.vscode
+.idea
+node_modules
+docs/build
+docs/doxygen
+
+.DS_Store
+
+
+docs/Doxyfile.bak
+
+docs/build/
+
+docs/build/.doctrees/
+
+docs/build/_sources/
+
+docs/doxygen/html/
+
+docs/doxygen/latex
+
+docs/doxygen/xml

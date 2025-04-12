@@ -1,0 +1,87 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    container:
+      image: nsumner/cmpt373:fall2024
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build project
+        run: |
+          mkdir build
+          cd build
+          cmake -DCMAKE_CXX_COMPILER=clang++ -DENABLE_COVERAGE=True -DCMAKE_EXPORT_COMPILE_COMMANDS=True ../
+          make
+
+      - name: Upload build
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-dir
+          path: build/
+          retention-days: 1
+
+  test:
+   needs: build
+   runs-on: self-hosted
+   steps:
+     - name: Download build
+       uses: actions/download-artifact@v3
+       with:
+         name: build-dir
+
+     - name: Run tests
+       run: |
+         chmod +x ./bin/ServerTests
+         LLVM_PROFILE_FILE="ServerTests.profraw" ./bin/ServerTests
+         llvm-profdata merge -sparse ServerTests.profraw -o ServerTests.profdata
+         llvm-cov show test/ServerTests -instr-profile=ServerTests.profdata -show-line-counts-or-regions -output-dir=coverage/ -format="html"
+         llvm-cov report test/ServerTests -instr-profile=ServerTests.profdata
+
+     - name: Upload coverage
+       uses: actions/upload-artifact@v3
+       with:
+         name: coverage
+         path: coverage/
+         retention-days: 1
+
+  analyze:
+    needs: build
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run cppcheck
+        run: cppcheck lib/* 2> cppcheck-results.txt
+
+      - name: Run clang-tidy
+        run: |
+          mkdir build
+          cd build
+          cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=True ../
+          run-clang-tidy -checks='*,-fuchsia-*,-google-readability-todo,-llvm-*, -google-runtime-references,-misc-unused-parameters, -google-readability-namespace-comments,-readability-else-after-return,-modernize-use-trailing-return-type' '^(?!.*(googletest|test|networking|nlohmann)).*' > clang-tidy-results.txt
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: cppcheck-results
+          path: cppcheck-results.txt
+          retention-days: 1
+
+      - name: Upload clang-tidy results
+        uses: actions/upload-artifact@v3
+        with:
+          name: clang-tidy-results
+          path: ./build/clang-tidy-results.txt
+          retention-days: 1
